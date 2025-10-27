@@ -40,7 +40,8 @@ function printMigrationInstructions() {
 
   const migrations = [
     '20251026000001_initial_schema.sql',
-    '20251026000002_indexes.sql'
+    '20251026000002_indexes.sql',
+    '20251026000003_rpc_functions.sql'
   ];
 
   migrations.forEach((filename, index) => {
@@ -76,6 +77,8 @@ function printMigrationInstructions() {
   console.log('  ✓ Performance indexes on all tables');
   console.log('\nFunctions:');
   console.log('  ✓ update_updated_at_column()');
+  console.log('  ✓ increment_concept_usage()');
+  console.log('  ✓ get_fair_random_concept()');
   console.log('\nTriggers:');
   console.log('  ✓ update_concepts_updated_at\n');
 
@@ -86,7 +89,8 @@ function printMigrationInstructions() {
   console.log('  supabase db push\n');
   console.log('Or apply migrations individually:');
   console.log('  supabase db execute --file supabase/migrations/20251026000001_initial_schema.sql');
-  console.log('  supabase db execute --file supabase/migrations/20251026000002_indexes.sql\n');
+  console.log('  supabase db execute --file supabase/migrations/20251026000002_indexes.sql');
+  console.log('  supabase db execute --file supabase/migrations/20251026000003_rpc_functions.sql\n');
 }
 
 printMigrationInstructions();
