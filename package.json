@@ -9,7 +9,8 @@
     "lint": "eslint",
     "setup:database": "tsx scripts/setup-database.ts",
     "seed:concepts": "tsx scripts/seed-concepts.ts",
-    "test:concept-pairs": "tsx scripts/test-concept-pairs.ts"
+    "test:concept-pairs": "tsx scripts/test-concept-pairs.ts",
+    "test:prompts": "tsx scripts/test-prompts.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
