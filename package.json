@@ -13,7 +13,8 @@
     "test:prompts": "tsx scripts/test-prompts.ts",
     "test:codex": "tsx scripts/test-codex-cli.ts",
     "generate": "tsx scripts/generate-single-connection.ts",
-    "generate:batch": "bash scripts/generate-batch.sh"
+    "generate:batch": "bash scripts/generate-batch.sh",
+    "health-check": "tsx scripts/health-check.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
