@@ -148,5 +148,15 @@ export type Database = {
         };
       };
     };
+    Functions: {
+      increment_concept_usage: {
+        Args: { concept_name: string };
+        Returns: void;
+      };
+      get_fair_random_concept: {
+        Args: Record<string, never>;
+        Returns: { id: string; name: string; usage_count: number }[];
+      };
+    };
   };
 };

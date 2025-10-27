@@ -14,6 +14,8 @@ const supabase = createClient<Database>(
 );
 
 export interface ConceptPair {
+  conceptAId: string;
+  conceptBId: string;
   conceptA: string;
   conceptB: string;
 }
@@ -21,8 +23,18 @@ export interface ConceptPair {
 /**
  * Get a random concept pair that hasn't been used yet.
  * Uses fair sampling to prefer concepts with lower usage_count.
+ *
+ * @param maxAttempts Maximum retry attempts before giving up (prevents infinite recursion)
+ * @returns A concept pair or null if unable to find unused pair
  */
-export async function getUnusedConceptPair(): Promise<ConceptPair | null> {
+export async function getUnusedConceptPair(
+  maxAttempts: number = 50
+): Promise<ConceptPair | null> {
+  if (maxAttempts <= 0) {
+    console.warn('⚠ Max attempts reached, could not find unused pair');
+    return null;
+  }
+
   // Step 1: Get two distinct concepts, weighted by inverse usage_count
   const { data: concepts, error } = await supabase
     .from('concepts')
@@ -30,9 +42,14 @@ export async function getUnusedConceptPair(): Promise<ConceptPair | null> {
     .order('usage_count', { ascending: true })
     .limit(50); // Get top 50 least-used concepts
 
-  if (error || !concepts || concepts.length < 2) {
-    console.error('Failed to fetch concepts:', error);
-    return null;
+  if (error) {
+    throw new Error(`Database error fetching concepts: ${error.message}`);
+  }
+
+  if (!concepts || concepts.length < 2) {
+    throw new Error(
+      `Insufficient concepts: found ${concepts?.length ?? 0}, need at least 2`
+    );
   }
 
   // Step 2: Randomly select two distinct concepts from the pool
@@ -47,23 +64,32 @@ export async function getUnusedConceptPair(): Promise<ConceptPair | null> {
   }
 
   if (conceptB.id === conceptA.id) {
-    console.error('Could not find two distinct concepts');
+    console.warn('Could not find two distinct concepts from pool');
     return null;
   }
 
   // Step 3: Check if this pair already exists (either direction)
-  const { data: existingConnection } = await supabase
+  // CRITICAL: Use concept_a_id and concept_b_id (UUIDs), not names!
+  const { data: existingConnection, error: checkError } = await supabase
     .from('connections')
     .select('id')
-    .or(`and(concept_a.eq.${conceptA.name},concept_b.eq.${conceptB.name}),and(concept_a.eq.${conceptB.name},concept_b.eq.${conceptA.name})`)
-    .single();
+    .or(
+      `and(concept_a_id.eq.${conceptA.id},concept_b_id.eq.${conceptB.id}),and(concept_a_id.eq.${conceptB.id},concept_b_id.eq.${conceptA.id})`
+    )
+    .maybeSingle();
+
+  if (checkError) {
+    throw new Error(`Database error checking duplicates: ${checkError.message}`);
+  }
 
   if (existingConnection) {
-    // Pair exists, retry with different selection
-    return getUnusedConceptPair();
+    // Pair exists, retry with different selection (decrement attempts)
+    return getUnusedConceptPair(maxAttempts - 1);
   }
 
   return {
+    conceptAId: conceptA.id,
+    conceptBId: conceptB.id,
     conceptA: conceptA.name,
     conceptB: conceptB.name,
   };
@@ -114,10 +140,26 @@ export async function incrementConceptUsage(
   conceptB: string
 ): Promise<void> {
   // Increment conceptA
-  await supabase.rpc('increment_concept_usage', { concept_name: conceptA });
+  const { error: errorA } = await supabase.rpc('increment_concept_usage', {
+    concept_name: conceptA,
+  });
+
+  if (errorA) {
+    throw new Error(
+      `Failed to increment usage for concept A (${conceptA}): ${errorA.message}`
+    );
+  }
 
   // Increment conceptB
-  await supabase.rpc('increment_concept_usage', { concept_name: conceptB });
+  const { error: errorB } = await supabase.rpc('increment_concept_usage', {
+    concept_name: conceptB,
+  });
+
+  if (errorB) {
+    throw new Error(
+      `Failed to increment usage for concept B (${conceptB}): ${errorB.message}`
+    );
+  }
 }
 
 /**
