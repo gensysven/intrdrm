@@ -1,6 +1,17 @@
 #!/usr/bin/env tsx
 
-import { createClient } from '@supabase/supabase-js';
+/**
+ * Database Setup Instructions
+ *
+ * Since Supabase doesn't support executing raw SQL via RPC from client libraries,
+ * you need to run the migration files manually through the Supabase Dashboard.
+ *
+ * This script will:
+ * 1. Read all migration files
+ * 2. Display the SQL content
+ * 3. Provide instructions for manual execution
+ */
+
 import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
@@ -8,51 +19,74 @@ import * as dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('❌ Missing Supabase credentials in .env.local');
+if (!supabaseUrl) {
+  console.error('❌ Missing NEXT_PUBLIC_SUPABASE_URL in .env.local');
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+function printMigrationInstructions() {
+  console.log('🚀 Supabase Database Setup Instructions\n');
+  console.log('========================================\n');
 
-async function runMigration(filename: string) {
-  const migrationPath = path.join(__dirname, '..', 'supabase', 'migrations', filename);
-  const sql = fs.readFileSync(migrationPath, 'utf-8');
+  console.log('Supabase does not support executing raw SQL via the client library.');
+  console.log('You need to run migrations manually through the Supabase Dashboard.\n');
 
-  console.log(`\n📝 Running migration: ${filename}`);
+  console.log('📋 Steps to set up your database:\n');
+  console.log('1. Go to your Supabase Dashboard:');
+  console.log(`   ${supabaseUrl.replace('/v1', '')}\n`);
+  console.log('2. Navigate to: SQL Editor (left sidebar)\n');
+  console.log('3. Run the following migration files IN ORDER:\n');
 
-  const { error } = await supabase.rpc('exec_sql', { sql_string: sql });
+  const migrations = [
+    '20251026000001_initial_schema.sql',
+    '20251026000002_indexes.sql'
+  ];
 
-  if (error) {
-    console.error(`❌ Migration failed: ${error.message}`);
-    throw error;
-  }
+  migrations.forEach((filename, index) => {
+    const migrationPath = path.join(__dirname, '..', 'supabase', 'migrations', filename);
 
-  console.log(`✅ Migration complete: ${filename}`);
+    console.log(`\n${'='.repeat(60)}`);
+    console.log(`Migration ${index + 1}: ${filename}`);
+    console.log('='.repeat(60));
+
+    if (fs.existsSync(migrationPath)) {
+      const sql = fs.readFileSync(migrationPath, 'utf-8');
+      console.log('\nFile location:');
+      console.log(`  ${migrationPath}\n`);
+      console.log('SQL Content:');
+      console.log('---');
+      console.log(sql);
+      console.log('---\n');
+    } else {
+      console.log(`\n⚠️  File not found: ${migrationPath}\n`);
+    }
+  });
+
+  console.log('\n' + '='.repeat(60));
+  console.log('After running all migrations, you should have:');
+  console.log('='.repeat(60));
+  console.log('\nTables:');
+  console.log('  ✓ concepts');
+  console.log('  ✓ connections');
+  console.log('  ✓ critic_evaluations');
+  console.log('  ✓ ratings');
+  console.log('  ✓ prompt_templates');
+  console.log('\nIndexes:');
+  console.log('  ✓ Performance indexes on all tables');
+  console.log('\nFunctions:');
+  console.log('  ✓ update_updated_at_column()');
+  console.log('\nTriggers:');
+  console.log('  ✓ update_concepts_updated_at\n');
+
+  console.log('='.repeat(60));
+  console.log('💡 Alternative: Supabase CLI');
+  console.log('='.repeat(60));
+  console.log('\nIf you have Supabase CLI installed, you can run:');
+  console.log('  supabase db push\n');
+  console.log('Or apply migrations individually:');
+  console.log('  supabase db execute --file supabase/migrations/20251026000001_initial_schema.sql');
+  console.log('  supabase db execute --file supabase/migrations/20251026000002_indexes.sql\n');
 }
 
-async function setupDatabase() {
-  console.log('🚀 Setting up Supabase database schema...\n');
-
-  try {
-    // Run migrations in order
-    await runMigration('20251026000001_initial_schema.sql');
-    await runMigration('20251026000002_indexes.sql');
-
-    console.log('\n✅ Database setup complete!');
-    console.log('\nTables created:');
-    console.log('  - concepts');
-    console.log('  - connections');
-    console.log('  - critic_evaluations');
-    console.log('  - ratings');
-    console.log('  - prompt_templates');
-
-  } catch (error) {
-    console.error('\n❌ Database setup failed:', error);
-    process.exit(1);
-  }
-}
-
-setupDatabase();
+printMigrationInstructions();

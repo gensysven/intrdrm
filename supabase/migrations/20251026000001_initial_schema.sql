@@ -23,7 +23,7 @@ CREATE TABLE connections (
   -- Metadata
   generated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   prompt_version TEXT DEFAULT 'v1.0',
-  model_used TEXT DEFAULT 'sonnet-4.5',
+  model_used TEXT DEFAULT 'gpt-4',
 
   -- Status
   status TEXT NOT NULL DEFAULT 'unrated' CHECK (status IN ('unrated', 'rated')),
