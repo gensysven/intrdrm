@@ -12,7 +12,8 @@
     "test:concept-pairs": "tsx scripts/test-concept-pairs.ts",
     "test:prompts": "tsx scripts/test-prompts.ts",
     "test:codex": "tsx scripts/test-codex-cli.ts",
-    "generate": "tsx scripts/generate-single-connection.ts"
+    "generate": "tsx scripts/generate-single-connection.ts",
+    "generate:batch": "bash scripts/generate-batch.sh"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
