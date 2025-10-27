@@ -72,7 +72,7 @@ export type Database = {
         Row: {
           id: string;
           connection_id: string;
-          critic_model: 'haiku-4' | 'sonnet-4.5';
+          critic_model: 'gpt-4-run-1' | 'gpt-4-run-2';
           novelty: number;
           coherence: number;
           usefulness: number;
@@ -83,7 +83,7 @@ export type Database = {
         Insert: {
           id?: string;
           connection_id: string;
-          critic_model: 'haiku-4' | 'sonnet-4.5';
+          critic_model: 'gpt-4-run-1' | 'gpt-4-run-2';
           novelty: number;
           coherence: number;
           usefulness: number;
@@ -93,7 +93,7 @@ export type Database = {
         Update: {
           id?: string;
           connection_id?: string;
-          critic_model?: 'haiku-4' | 'sonnet-4.5';
+          critic_model?: 'gpt-4-run-1' | 'gpt-4-run-2';
           novelty?: number;
           coherence?: number;
           usefulness?: number;
