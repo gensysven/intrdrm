@@ -164,6 +164,8 @@ Open [http://localhost:3000](http://localhost:3000) to see your connections and 
    - Run health checks every 6 hours
    - Create GitHub issues if critical problems detected
    - Send Slack notifications (if configured)
+   - **NEW**: Respond to @claude mentions in issues/PRs
+   - **NEW**: Automatically review all PRs
 
 3. **Manual Triggers**
 
@@ -171,9 +173,27 @@ Open [http://localhost:3000](http://localhost:3000) to see your connections and 
    - **Emergency**: Actions → Emergency Generation → Run workflow (50+ connections)
    - **Health Check**: Actions → Health Monitor → Run workflow
 
+4. **Interactive Claude**
+
+   Mention `@claude` in any issue or PR comment to get AI assistance:
+   ```
+   @claude Can you explain how the dual-critic system works?
+   @claude Please review this code for potential bugs
+   @claude Add error handling to the connection generation script
+   ```
+
+5. **Automatic PR Reviews**
+
+   Every PR automatically gets reviewed by Claude for:
+   - Code quality and best practices
+   - Potential bugs and issues
+   - Performance considerations
+   - Security concerns
+   - Test coverage
+
 ### Cost Analysis
 
-All three workflows combined:
+All five workflows combined:
 - **Codex/Claude subscription**: $0/month
 - **GitHub Actions**: Free tier (2,000 min/month, we use ~600)
 - **Supabase**: Free tier (500MB, plenty for this)
@@ -210,7 +230,9 @@ intrdrm/
 └── .github/workflows/            # Automation
     ├── daily-generation.yml      # Scheduled generation
     ├── emergency-generation.yml  # Manual bulk generation
-    └── health-monitor.yml        # System health checks
+    ├── health-monitor.yml        # System health checks
+    ├── claude.yml                # Interactive @claude responses
+    └── claude-code-review.yml    # Automatic PR reviews
 ```
 
 ---
