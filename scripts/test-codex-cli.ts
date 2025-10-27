@@ -5,8 +5,8 @@
  */
 
 import {
-  validateCodexCLI,
-  callCodexCLI,
+  validateCLI,
+  callCLI,
   extractJSON,
   retryWithBackoff,
 } from './lib/cli-wrapper';
@@ -14,9 +14,10 @@ import {
 async function testCodexCLI() {
   console.log('🧪 Testing Codex CLI integration...\n');
 
-  // Test 1: Validate Codex CLI installation and authentication
-  console.log('📋 Test 1: Validate Codex CLI');
-  const validation = await validateCodexCLI();
+  // Test 1: Validate CLI installation and authentication
+  const cliName = process.env.USE_CLAUDE === 'true' ? 'Claude Code' : 'Codex';
+  console.log(`📋 Test 1: Validate ${cliName} CLI`);
+  const validation = await validateCLI();
 
   if (!validation.valid) {
     console.error(`   ❌ Validation failed: ${validation.error}\n`);
@@ -33,7 +34,7 @@ async function testCodexCLI() {
   const simplePrompt = 'Output a JSON object with two fields: "test" set to true, and "value" set to 42. Output ONLY the JSON, no other text.';
 
   try {
-    const response = await callCodexCLI(simplePrompt, 0.1);
+    const response = await callCLI(simplePrompt, 0.1);
 
     if (!response.success) {
       console.error(`   ❌ Simple call failed: ${response.error}\n`);
@@ -111,7 +112,7 @@ Output ONLY JSON in this format:
   `.trim();
 
   try {
-    const response = await callCodexCLI(generationPrompt, 0.8);
+    const response = await callCLI(generationPrompt, 0.8);
 
     if (!response.success) {
       console.error(`   ❌ Generation failed: ${response.error}\n`);

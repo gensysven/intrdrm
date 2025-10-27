@@ -1,12 +1,14 @@
 /**
- * Codex CLI Integration Wrapper
+ * CLI Integration Wrapper
  *
- * Provides a TypeScript interface to the Codex CLI for zero-cost generation.
+ * Provides a unified interface to both Codex CLI (free) and Claude Code (paid).
+ * Set USE_CLAUDE=true to use Claude Code instead of Codex.
  */
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
+import { callClaudeCLI, validateClaudeCLI } from './claude-wrapper';
 
 const execAsync = promisify(exec);
 
@@ -18,14 +20,38 @@ export interface CLIResponse {
 }
 
 /**
- * Call Codex CLI with a prompt.
+ * Call CLI with a prompt (auto-detects Codex or Claude based on USE_CLAUDE env var).
+ *
+ * @param prompt The prompt to send
+ * @param temperature Temperature setting (0.0-1.0, default 0.7)
+ * @param skipGitCheck Skip git repository check for Codex (default true)
+ * @returns Parsed response or raw text
+ */
+export async function callCLI(
+  prompt: string,
+  temperature: number = 0.7,
+  skipGitCheck: boolean = true
+): Promise<CLIResponse> {
+  const useClaude = process.env.USE_CLAUDE === 'true';
+
+  if (useClaude) {
+    console.log('   🔵 Using Claude Code (API - costs money)');
+    return callClaudeCLI(prompt, temperature);
+  } else {
+    console.log('   🟢 Using Codex CLI (free with ChatGPT subscription)');
+    return callCodexCLI(prompt, temperature, skipGitCheck);
+  }
+}
+
+/**
+ * Call Codex CLI with a prompt (internal - use callCLI instead).
  *
  * @param prompt The prompt to send to Codex
  * @param temperature Temperature setting (0.0-1.0, default 0.7)
  * @param skipGitCheck Skip git repository check (default true)
  * @returns Parsed response or raw text
  */
-export async function callCodexCLI(
+async function callCodexCLI(
   prompt: string,
   temperature: number = 0.7,
   skipGitCheck: boolean = true
@@ -171,11 +197,29 @@ export async function retryWithBackoff<T>(
 }
 
 /**
- * Validate Codex CLI is installed and authenticated.
+ * Validate CLI is installed and authenticated (auto-detects Codex or Claude).
  *
  * @returns Object with validation status and error message if any
  */
-export async function validateCodexCLI(): Promise<{
+export async function validateCLI(): Promise<{
+  valid: boolean;
+  error?: string;
+}> {
+  const useClaude = process.env.USE_CLAUDE === 'true';
+
+  if (useClaude) {
+    return validateClaudeCLI();
+  } else {
+    return validateCodexCLI();
+  }
+}
+
+/**
+ * Validate Codex CLI is installed and authenticated (internal).
+ *
+ * @returns Object with validation status and error message if any
+ */
+async function validateCodexCLI(): Promise<{
   valid: boolean;
   error?: string;
 }> {

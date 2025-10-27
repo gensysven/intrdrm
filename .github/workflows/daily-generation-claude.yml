@@ -1,0 +1,125 @@
+name: Daily Connection Generation (Claude Code - API)
+
+# NOTE: This workflow uses Claude Code via API, which incurs costs.
+# For zero-cost generation, use daily-generation.yml (Codex only).
+#
+# Estimated cost: ~$0.50-1.00 per day (20 connections)
+# - Generator: ~500 tokens in, ~200 tokens out per connection
+# - Critics: ~400 tokens in, ~50 tokens out × 2 per connection
+# - Total per connection: ~1,600 input tokens, ~300 output tokens
+# - Cost: ~$0.024/connection × 20 = ~$0.48/day
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC (adjust to your timezone)
+    # DISABLED by default - uncomment to enable
+    # - cron: '0 2 * * *'
+  workflow_dispatch: # Allow manual triggers
+    inputs:
+      count:
+        description: 'Number of connections to generate'
+        required: false
+        default: '20'
+      delay:
+        description: 'Delay between generations (seconds)'
+        required: false
+        default: '10'
+      use_claude:
+        description: 'Use Claude Code (costs $) or Codex (free)?'
+        required: false
+        default: 'codex'
+        type: choice
+        options:
+          - codex
+          - claude
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Codex authentication (free, uses ChatGPT subscription)
+      - name: Set up Codex authentication
+        if: github.event.inputs.use_claude != 'claude'
+        run: |
+          mkdir -p ~/.codex
+          echo '${{ secrets.CODEX_AUTH_JSON }}' > ~/.codex/auth.json
+          chmod 600 ~/.codex/auth.json
+        env:
+          CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
+
+      - name: Verify Codex authentication
+        if: github.event.inputs.use_claude != 'claude'
+        run: codex --version || echo "Warning: Codex CLI not found in PATH"
+
+      # Claude Code authentication (paid, uses Anthropic API)
+      - name: Set up Claude Code
+        if: github.event.inputs.use_claude == 'claude'
+        run: |
+          npm install -g @anthropic/claude-code
+          claude --version
+
+      - name: Create environment file
+        run: |
+          cat > .env.local << EOF
+          NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}
+          SLACK_WEBHOOK_URL=${{ secrets.SLACK_WEBHOOK_URL }}
+
+          # Claude API (if using claude option)
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          EOF
+
+      - name: Run health check (pre-generation)
+        run: npm run health-check || echo "Pre-generation health check completed with warnings"
+
+      - name: Generate connections
+        run: |
+          COUNT=${{ github.event.inputs.count || '20' }}
+          DELAY=${{ github.event.inputs.delay || '10' }}
+          ./scripts/generate-batch.sh $COUNT $DELAY
+        env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
+          USE_CLAUDE: ${{ github.event.inputs.use_claude == 'claude' && 'true' || 'false' }}
+
+      - name: Run health check (post-generation)
+        if: always()
+        run: npm run health-check || echo "Post-generation health check completed with warnings"
+
+      - name: Upload generation logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generation-logs-${{ github.run_number }}
+          path: logs/*.log
+          retention-days: 30
+
+      - name: Calculate estimated cost
+        if: github.event.inputs.use_claude == 'claude'
+        run: |
+          COUNT=${{ github.event.inputs.count || '20' }}
+          COST=$(echo "scale=2; $COUNT * 0.024" | bc)
+          echo "## Cost Estimate" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Generated $COUNT connections using Claude Code API" >> $GITHUB_STEP_SUMMARY
+          echo "Estimated cost: \$$COST USD" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Daily generation failed!"
+          echo "Check the logs artifact for details."

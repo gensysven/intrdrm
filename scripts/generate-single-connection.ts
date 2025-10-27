@@ -22,7 +22,7 @@ import {
   getCriticPromptRun1,
   getCriticPromptRun2,
 } from './lib/prompts';
-import { callCodexCLI, retryWithBackoff, extractJSON } from './lib/cli-wrapper';
+import { callCLI, retryWithBackoff, extractJSON } from './lib/cli-wrapper';
 
 dotenv.config({ path: '.env.local' });
 
@@ -55,7 +55,7 @@ async function generateConnection(
   const prompt = getGeneratorPrompt(conceptA, conceptB);
 
   const response = await retryWithBackoff(
-    () => callCodexCLI(prompt, 0.8),
+    () => callCLI(prompt, 0.8),
     3,
     2000
   );
@@ -106,7 +106,7 @@ async function scoreWithCritic(
   const temperature = run === 1 ? 0.7 : 0.5;
 
   const response = await retryWithBackoff(
-    () => callCodexCLI(prompt, temperature),
+    () => callCLI(prompt, temperature),
     3,
     2000
   );
