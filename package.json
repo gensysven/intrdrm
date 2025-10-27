@@ -11,7 +11,8 @@
     "seed:concepts": "tsx scripts/seed-concepts.ts",
     "test:concept-pairs": "tsx scripts/test-concept-pairs.ts",
     "test:prompts": "tsx scripts/test-prompts.ts",
-    "test:codex": "tsx scripts/test-codex-cli.ts"
+    "test:codex": "tsx scripts/test-codex-cli.ts",
+    "generate": "tsx scripts/generate-single-connection.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
